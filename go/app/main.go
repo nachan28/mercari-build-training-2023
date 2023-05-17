@@ -1,13 +1,15 @@
 package main
 
 import (
-	"encoding/json"
-	"encoding/hex"
 	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -24,8 +26,8 @@ type Response struct {
 }
 
 type Item struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
+	Name         string `json:"name"`
+	Category     string `json:"category"`
 	Img_filename string `json:"img_filename"`
 }
 
@@ -39,13 +41,10 @@ func root(c echo.Context) error {
 }
 
 func hashString(s string) string {
-    h := sha256.New()
-    h.Write([]byte(s))
-    return hex.EncodeToString(h.Sum(nil))
+	h := sha256.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }
-
-// Create wrapper
-var wrapper ItemWrapper
 
 func addItem(c echo.Context) error {
 	// Get form data
@@ -54,16 +53,13 @@ func addItem(c echo.Context) error {
 	imagePath := c.FormValue("image")
 
 	// Hash image
-	imgFileName := strings.Split(imagePath, "/")[1]
-	img := strings.Split(imgFileName, ".")[0]
+	imgFileName := filepath.Base(imagePath)
+	img := strings.TrimSuffix(imgFileName, filepath.Ext(imgFileName))
 	hash := hashString(img)
 
 	// Create item object
 	item := Item{name, category, hash + ".jpg"}
 	c.Logger().Infof("Receive item: %s, category: %s", name, category)
-
-	// Add item to wrapper
-	wrapper.Items = append(wrapper.Items, item)
 
 	// Open items.json
 	file, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0666)
@@ -73,12 +69,24 @@ func addItem(c echo.Context) error {
 	}
 	defer file.Close()
 
-	// Write items into items.json
+	// Decode existing items from items.json
+	var wrapper ItemWrapper
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&wrapper); err != nil && err != io.EOF {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, Response{Message: "Failed to decode item file"})
+	}
+
+	// Add item to wrapper
+	wrapper.Items = append(wrapper.Items, item)
+
+	// Clear and rewrite items into items.json
+	file.Seek(0, 0)
+	file.Truncate(0)
 	encoder := json.NewEncoder(file)
 	if err := encoder.Encode(wrapper); err != nil {
 		log.Fatal(err)
 	}
-
 	// Return message
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
