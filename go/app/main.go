@@ -64,7 +64,7 @@ func addItem(c echo.Context) error {
 		log.Fatal(err)
 	}
 	// Return message
-	message := fmt.Sprintf("item received: %s, category: %s", name, category)
+	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
 	return c.JSON(http.StatusOK, res)
 }
