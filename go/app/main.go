@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/hex"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,6 +26,7 @@ type Response struct {
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
+	Img_filename string `json:"img_filename"`
 }
 
 type ItemWrapper struct {
@@ -35,6 +38,12 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func hashString(s string) string {
+    h := sha256.New()
+    h.Write([]byte(s))
+    return hex.EncodeToString(h.Sum(nil))
+}
+
 // Create wrapper
 var wrapper ItemWrapper
 
@@ -42,9 +51,15 @@ func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
+	imagePath := c.FormValue("image")
+
+	// Hash image
+	imgFileName := strings.Split(imagePath, "/")[1]
+	img := strings.Split(imgFileName, ".")[0]
+	hash := hashString(img)
 
 	// Create item object
-	item := Item{name, category}
+	item := Item{name, category, hash + ".jpg"}
 	c.Logger().Infof("Receive item: %s, category: %s", name, category)
 
 	// Add item to wrapper
@@ -63,6 +78,7 @@ func addItem(c echo.Context) error {
 	if err := encoder.Encode(wrapper); err != nil {
 		log.Fatal(err)
 	}
+
 	// Return message
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
