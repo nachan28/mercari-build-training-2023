@@ -50,7 +50,7 @@ func addItem(c echo.Context) error {
 	// Add item to wrapper
 	wrapper.Items = append(wrapper.Items, item)
 
-	// Create items.json
+	// Open items.json
 	file, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatal(err)
