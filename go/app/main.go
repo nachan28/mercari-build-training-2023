@@ -69,6 +69,19 @@ func addItem(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func getAllItems(c echo.Context) error {
+	// Read items.json
+	allItems, err := os.ReadFile("items.json")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
+	}
+
+	// Return response
+	message := string(allItems)
+	res := Response{Message: message}
+	return c.JSON(http.StatusOK, res)
+}
+
 func getImg(c echo.Context) error {
 	// Create image path
 	imgPath := path.Join(ImgDir, c.Param("imageFilename"))
@@ -104,6 +117,7 @@ func main() {
 	// Routes
 	e.GET("/", root)
 	e.POST("/items", addItem)
+	e.GET("/items", getAllItems)
 	e.GET("/image/:imageFilename", getImg)
 
 	// Start server
