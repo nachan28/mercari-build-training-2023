@@ -86,12 +86,16 @@ func addItem(c echo.Context) error {
 	itemWrapper.Items = append(itemWrapper.Items, item)
 
 	// Clear and rewrite items into items.json
-	file.Seek(0, 0)
-	file.Truncate(0)
+	itemsJsonData, err := json.Marshal(itemWrapper)
+	if err != nil {
+		c.Logger().Error(err)
+	}
+	os.WriteFile("items.json", itemsJsonData, 0666)
 	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(wrapper); err != nil {
+	if err := encoder.Encode(itemWrapper); err != nil {
 		log.Fatal(err)
 	}
+	
 	// Return message
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
