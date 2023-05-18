@@ -52,6 +52,14 @@ func trimPath(s string) string {
 	return img
 }
 
+func readItemsFromFile(filePath string) ([]byte, error) {
+	allItems, err := os.ReadFile("items.json")
+	if err != nil {
+		return nil, err
+	}
+	return allItems, nil
+}
+
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
@@ -73,7 +81,7 @@ func addItem(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, Response{Message: "Failed to save item"})
 	}
 	defer file.Close()
-
+	
 	// Decode existing items from items.json
 	var itemWrapper ItemWrapper
 	decoder := json.NewDecoder(file)
@@ -104,7 +112,7 @@ func addItem(c echo.Context) error {
 
 func getAllItems(c echo.Context) error {
 	// Read items.json
-	allItems, err := os.ReadFile("items.json")
+	allItems, err := readItemsFromFile("items.json")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
