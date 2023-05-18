@@ -46,6 +46,12 @@ func hashString(s string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func trimPath(s string) string {
+	imgFileName := filepath.Base(s)
+	img := strings.TrimSuffix(imgFileName, filepath.Ext(imgFileName))
+	return img
+}
+
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
@@ -53,12 +59,11 @@ func addItem(c echo.Context) error {
 	imagePath := c.FormValue("image")
 
 	// Hash image
-	imgFileName := filepath.Base(imagePath)
-	img := strings.TrimSuffix(imgFileName, filepath.Ext(imgFileName))
-	hash := hashString(img)
-
+	img := trimPath(imagePath)
+	hashImageName := hashString(img)
+	
 	// Create item object
-	item := Item{name, category, hash + ".jpg"}
+	item := Item{name, category, hashImageName + ".jpg"}
 	c.Logger().Infof("Receive item: %s, category: %s", name, category)
 
 	// Open items.json
