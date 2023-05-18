@@ -75,15 +75,15 @@ func addItem(c echo.Context) error {
 	defer file.Close()
 
 	// Decode existing items from items.json
-	var wrapper ItemWrapper
+	var itemWrapper ItemWrapper
 	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&wrapper); err != nil && err != io.EOF {
+	if err := decoder.Decode(&itemWrapper); err != nil && err != io.EOF {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, Response{Message: "Failed to decode item file"})
 	}
 
-	// Add item to wrapper
-	wrapper.Items = append(wrapper.Items, item)
+	// Add item to itemWrapper
+	itemWrapper.Items = append(itemWrapper.Items, item)
 
 	// Clear and rewrite items into items.json
 	file.Seek(0, 0)
