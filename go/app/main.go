@@ -131,6 +131,32 @@ func getAllItems(c echo.Context) error {
 	return c.JSON(http.StatusOK, items)
 }
 
+func getItem(c echo.Context) error {
+	// Get param
+	idParam := c.Param("item_id")
+	itemId, err := strconv.Atoi(idParam)
+	if err != nil {
+		return err
+	}
+
+	// Read data
+	items, err := readItemsFromFile()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
+	}
+
+	// Search target item
+	for idx, item := range items.Items{
+		if idx == itemId {
+			return c.JSON(http.StatusOK, item)
+		}
+	}
+
+	// if not found
+	res := Response{Message: "Not found"}
+	return c.JSON(http.StatusNotFound, res)
+}
+
 func getImg(c echo.Context) error {
 	// Create image path
 	imgPath := path.Join(ImgDir, c.Param("imageFilename"))
