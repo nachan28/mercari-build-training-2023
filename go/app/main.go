@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -123,19 +124,11 @@ func addItem(c echo.Context) error {
 
 func getAllItems(c echo.Context) error {
 	// Read items.json
-	allItems, err := readItemsFromFile()
+	items, err := readItemsFromFile()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
-
-	// Return response
-	itemsJSON, err := json.Marshal(allItems)
-	if err != nil {
-		log.Fatal(err)
-	}
-	message := string(itemsJSON)
-	res := Response{Message: message}
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, items)
 }
 
 func getImg(c echo.Context) error {
@@ -174,6 +167,7 @@ func main() {
 	e.GET("/", root)
 	e.POST("/items", addItem)
 	e.GET("/items", getAllItems)
+	e.GET("/items/:item_id", getItem)
 	e.GET("/image/:imageFilename", getImg)
 
 	// Start server
