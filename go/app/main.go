@@ -98,7 +98,6 @@ func addItem(c echo.Context) error {
 
 
 	// Read data from items.json
-	var itemWrapper ItemWrapper
 	itemWrapper, err := readItemsFromFile()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
