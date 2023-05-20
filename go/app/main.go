@@ -5,12 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
+	"errors"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -62,6 +63,24 @@ func readItemsFromFile() (ItemWrapper, error) {
 	return items, nil
 }
 
+func writeItemsToJSON(items ItemWrapper) error{
+	itemsJsonData, err := json.Marshal(items)
+	if err != nil {
+		log.Println(err)
+	}
+	err = os.WriteFile("items.json", itemsJsonData, 0666)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			_, err := os.Create("items.json")
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else{
+			log.Fatal(err)
+		}
+	}
+}
+
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
@@ -85,21 +104,15 @@ func addItem(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
 	
-
 	// Add item to itemWrapper
 	itemWrapper.Items = append(itemWrapper.Items, item)
 
-	// Clear and rewrite items into items.json
-	itemsJsonData, err := json.Marshal(itemWrapper)
+	// Write data to items.json
+	err = writeItemsToJSON(itemWrapper)
 	if err != nil {
-		c.Logger().Error(err)
+		log.Println(err)
 	}
-	os.WriteFile("items.json", itemsJsonData, 0666)
-	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(itemWrapper); err != nil {
-		log.Fatal(err)
-	}
-	
+
 	// Return message
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
