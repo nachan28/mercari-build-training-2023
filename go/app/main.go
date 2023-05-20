@@ -52,12 +52,14 @@ func trimPath(s string) string {
 	return img
 }
 
-func readItemsFromFile(filePath string) ([]byte, error) {
-	allItems, err := os.ReadFile("items.json")
+func readItemsFromFile() (ItemWrapper, error) {
+	data, err := os.ReadFile("items.json")
 	if err != nil {
-		return nil, err
+		return ItemWrapper{}, err
 	}
-	return allItems, nil
+	var items ItemWrapper
+	err = json.Unmarshal(data, items)
+	return items, nil
 }
 
 func addItem(c echo.Context) error {
@@ -74,21 +76,15 @@ func addItem(c echo.Context) error {
 	item := Item{name, category, hashImageName + ".jpg"}
 	c.Logger().Infof("Receive item: %s, category: %s", name, category)
 
-	// Open items.json
-	file, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		log.Fatal(err)
-		return c.JSON(http.StatusInternalServerError, Response{Message: "Failed to save item"})
-	}
-	defer file.Close()
-	
-	// Decode existing items from items.json
+
+
+	// Read data from items.json
 	var itemWrapper ItemWrapper
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&itemWrapper); err != nil && err != io.EOF {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, Response{Message: "Failed to decode item file"})
+	itemWrapper, err := readItemsFromFile()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
+	
 
 	// Add item to itemWrapper
 	itemWrapper.Items = append(itemWrapper.Items, item)
@@ -112,7 +108,7 @@ func addItem(c echo.Context) error {
 
 func getAllItems(c echo.Context) error {
 	// Read items.json
-	allItems, err := readItemsFromFile("items.json")
+	allItems, err := readItemsFromFile()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
