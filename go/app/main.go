@@ -11,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -59,26 +58,30 @@ func readItemsFromFile() (ItemWrapper, error) {
 		return ItemWrapper{}, err
 	}
 	var items ItemWrapper
-	err = json.Unmarshal(data, items)
+	err = json.Unmarshal(data, &items)
+	if err != nil {
+		return ItemWrapper{}, err
+	}
 	return items, nil
 }
 
 func writeItemsToJSON(items ItemWrapper) error{
 	itemsJsonData, err := json.Marshal(items)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	err = os.WriteFile("items.json", itemsJsonData, 0666)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			_, err := os.Create("items.json")
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 		} else{
-			log.Fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func addItem(c echo.Context) error {
@@ -109,7 +112,7 @@ func addItem(c echo.Context) error {
 	// Write data to items.json
 	err = writeItemsToJSON(itemWrapper)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 
 	// Return message
@@ -126,7 +129,11 @@ func getAllItems(c echo.Context) error {
 	}
 
 	// Return response
-	message := string(allItems)
+	itemsJSON, err := json.Marshal(allItems)
+	if err != nil {
+		log.Fatal(err)
+	}
+	message := string(itemsJSON)
 	res := Response{Message: message}
 	return c.JSON(http.StatusOK, res)
 }
