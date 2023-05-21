@@ -57,12 +57,24 @@ func trimPath(s string) string {
 func readItemsFromFile() (ItemWrapper, error) {
 	data, err := os.ReadFile("items.json")
 	if err != nil {
+		log.Printf("Failed to unmarshal items.json: %v", err)
 		return ItemWrapper{}, err
 	}
+
 	var items ItemWrapper
-	err = json.Unmarshal(data, &items)
-	if err != nil {
-		return ItemWrapper{}, err
+
+	if len(data) == 0 {
+		err = writeItemsToJSON(ItemWrapper{})
+		if err != nil {
+			log.Printf("Failed to write to items.json: %v", err)
+			return ItemWrapper{}, err
+		}
+	} else {
+		err = json.Unmarshal(data, &items)
+		if err != nil {
+			log.Printf("Failed to read items.json: %v", err)
+			return ItemWrapper{}, err
+		}
 	}
 	return items, nil
 }
