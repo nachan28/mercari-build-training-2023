@@ -4,14 +4,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -27,6 +27,7 @@ type Response struct {
 }
 
 type Item struct {
+	Id           int
 	Name         string `json:"name"`
 	Category     string `json:"category"`
 	Img_filename string `json:"img_filename"`
@@ -66,7 +67,7 @@ func readItemsFromFile() (ItemWrapper, error) {
 	return items, nil
 }
 
-func writeItemsToJSON(items ItemWrapper) error{
+func writeItemsToJSON(items ItemWrapper) error {
 	itemsJsonData, err := json.Marshal(items)
 	if err != nil {
 		return err
@@ -78,7 +79,7 @@ func writeItemsToJSON(items ItemWrapper) error{
 			if err != nil {
 				return err
 			}
-		} else{
+		} else {
 			return err
 		}
 	}
@@ -94,19 +95,18 @@ func addItem(c echo.Context) error {
 	// Hash image
 	img := trimPath(imagePath)
 	hashImageName := hashString(img)
-	
-	// Create item object
-	item := Item{name, category, hashImageName + ".jpg"}
-	c.Logger().Infof("Receive item: %s, category: %s", name, category)
-
-
 
 	// Read data from items.json
 	itemWrapper, err := readItemsFromFile()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
 	}
-	
+
+	// Create item object
+	itemId := len(itemWrapper.Items) + 1
+	item := Item{itemId, name, category, hashImageName + ".jpg"}
+	c.Logger().Infof("Receive item: %s, category: %s", name, category)
+
 	// Add item to itemWrapper
 	itemWrapper.Items = append(itemWrapper.Items, item)
 
@@ -146,7 +146,7 @@ func getItem(c echo.Context) error {
 	}
 
 	// Search target item
-	for idx, item := range items.Items{
+	for idx, item := range items.Items {
 		if idx == itemId {
 			return c.JSON(http.StatusOK, item)
 		}
