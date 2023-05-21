@@ -84,7 +84,7 @@ func trimPath(s string) string {
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
-	category := c.FormValue("category")
+	categoryId := c.FormValue("category_id")
 	imagePath := c.FormValue("image")
 
 	// Hash image
@@ -99,8 +99,8 @@ func addItem(c echo.Context) error {
 	defer db.Close()
 
 	// Insert item to items table
-	cmd := "INSERT INTO items (name, category, image_filename) VALUES($1, $2, $3)"
-	_, err = db.Exec(cmd, name, category, hashImageName+".jpg")
+	cmd := "INSERT INTO items (name, category_id, image_filename) VALUES($1, $2, $3)"
+	_, err = db.Exec(cmd, name, categoryId, hashImageName+".jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func getAllItems(c echo.Context) error {
 	defer db.Close()
 
 	// Get all records from items table
-	cmd := "SELECT * FROM items"
+	cmd := "SELECT items.id, items.name, category.name, items.image_filename FROM items INNER JOIN category ON items.category_id=category.id"
 	rows, err := db.Query(cmd)
 	if err != nil {
 		log.Fatal(err)
@@ -165,7 +165,7 @@ func getItem(c echo.Context) error {
 	defer db.Close()
 
 	// Get target record from items table
-	cmd := "SELECT * FROM items WHERE id=$1"
+	cmd := "SELECT items.id, items.name, category.name, items.image_filename FROM items INNER JOIN category ON items.category_id=category.id WHERE items.id=$1"
 	rows, err := db.Query(cmd, itemId)
 	if err != nil {
 		log.Fatal(err)
@@ -213,7 +213,7 @@ func searchItems(c echo.Context) error {
 	defer db.Close()
 
 	// Search DB
-	cmd := "SELECT * FROM items WHERE name LIKE $1"
+	cmd := "SELECT items.id, items.name, category.name, items.image_filename FROM items INNER JOIN category ON items.category_id=category.id WHERE items.name LIKE $1"
 	rows, err := db.Query(cmd, keyword)
 	if err != nil {
 		log.Fatal(err)
