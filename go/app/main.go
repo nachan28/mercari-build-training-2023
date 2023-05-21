@@ -158,8 +158,8 @@ func getItem(c echo.Context) error {
 	}
 
 	// Search target item
-	for idx, item := range items.Items {
-		if idx == itemId {
+	for _, item := range items.Items {
+		if item.Id == itemId {
 			return c.JSON(http.StatusOK, item)
 		}
 	}
