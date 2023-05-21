@@ -133,7 +133,7 @@ func addItem(c echo.Context) error {
 	
 	
 	// Connect to DB
-	db, err := sql.Open("sqlite3", "/db/mercari.sqlite3")
+	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func addItem(c echo.Context) error {
 	
 	
 	// Insert item to items table
-	cmd := "INSERT INTO items (name, category, image_filename) VALUES($1, $2, $3, $4)"
+	cmd := "INSERT INTO items (name, category, image_filename) VALUES($1, $2, $3)"
 	_, err = db.Exec(cmd, name, category, hashImageName + ".jpg")
 	if err != nil {
 		log.Fatal(err)
