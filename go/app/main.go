@@ -110,26 +110,6 @@ func addItem(c echo.Context) error {
 	img := trimPath(imagePath)
 	hashImageName := hashString(img)
 
-	// // Read data from items.json
-	// itemWrapper, err := readItemsFromFile()
-	// if err != nil {
-	// 	return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
-	// }
-
-	// // Create item object
-	// itemId := len(itemWrapper.Items) + 1
-	// item := Item{itemId, name, category, hashImageName + ".jpg"}
-	// c.Logger().Infof("Receive item: %s, category: %s", name, category)
-
-	// // Add item to itemWrapper
-	// itemWrapper.Items = append(itemWrapper.Items, item)
-
-	// // Write data to items.json
-	// err = writeItemsToJSON(itemWrapper)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	// Connect to DB
 	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
 	if err != nil {
