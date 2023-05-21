@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -12,12 +13,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"database/sql"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -130,19 +130,16 @@ func addItem(c echo.Context) error {
 	// 	log.Fatal(err)
 	// }
 
-	
-	
 	// Connect to DB
 	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	
-	
+
 	// Insert item to items table
 	cmd := "INSERT INTO items (name, category, image_filename) VALUES($1, $2, $3)"
-	_, err = db.Exec(cmd, name, category, hashImageName + ".jpg")
+	_, err = db.Exec(cmd, name, category, hashImageName+".jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,10 +150,33 @@ func addItem(c echo.Context) error {
 }
 
 func getAllItems(c echo.Context) error {
-	// Read items.json
-	items, err := readItemsFromFile()
+	// Connect to DB
+	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// Get all records from items table
+	cmd := "SELECT * FROM items"
+	rows, err := db.Query(cmd)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var items ItemWrapper
+
+	// Return response
+	for rows.Next() {
+		var item Item
+
+		err := rows.Scan(&item.Id, &item.Name, &item.Category, &item.Img_filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		items.Items = append(items.Items, item)
 	}
 	return c.JSON(http.StatusOK, items)
 }
@@ -169,22 +189,33 @@ func getItem(c echo.Context) error {
 		return err
 	}
 
-	// Read data
-	items, err := readItemsFromFile()
+	// Connect to DB
+	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
+		log.Fatal(err)
 	}
+	defer db.Close()
 
-	// Search target item
-	for _, item := range items.Items {
-		if item.Id == itemId {
-			return c.JSON(http.StatusOK, item)
+	// Get target record from items table
+	cmd := "SELECT * FROM items WHERE id=$1"
+	rows, err := db.Query(cmd, itemId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	// Return response
+	if rows.Next() {
+		var item Item
+		err = rows.Scan(&item.Id, &item.Name, &item.Category, &item.Img_filename)
+		if err != nil {
+			log.Fatal(err)
 		}
+		return c.JSON(http.StatusOK, item)
+	} else {
+		res := Response{Message: "Not found"}
+		return c.JSON(http.StatusNotFound, res)
 	}
-
-	// if not found
-	res := Response{Message: "Not found"}
-	return c.JSON(http.StatusNotFound, res)
 }
 
 func getImg(c echo.Context) error {
