@@ -4,7 +4,8 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
+
+	// "encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -55,30 +56,30 @@ func trimPath(s string) string {
 	return img
 }
 
-func readItemsFromFile() (ItemWrapper, error) {
-	data, err := os.ReadFile("items.json")
-	if err != nil {
-		log.Printf("Failed to unmarshal items.json: %v", err)
-		return ItemWrapper{}, err
-	}
+// func readItemsFromFile() (ItemWrapper, error) {
+// 	data, err := os.ReadFile("items.json")
+// 	if err != nil {
+// 		log.Printf("Failed to unmarshal items.json: %v", err)
+// 		return ItemWrapper{}, err
+// 	}
 
-	var items ItemWrapper
+// 	var items ItemWrapper
 
-	if len(data) == 0 {
-		err = writeItemsToJSON(ItemWrapper{})
-		if err != nil {
-			log.Printf("Failed to write to items.json: %v", err)
-			return ItemWrapper{}, err
-		}
-	} else {
-		err = json.Unmarshal(data, &items)
-		if err != nil {
-			log.Printf("Failed to read items.json: %v", err)
-			return ItemWrapper{}, err
-		}
-	}
-	return items, nil
-}
+// 	if len(data) == 0 {
+// 		err = writeItemsToJSON(ItemWrapper{})
+// 		if err != nil {
+// 			log.Printf("Failed to write to items.json: %v", err)
+// 			return ItemWrapper{}, err
+// 		}
+// 	} else {
+// 		err = json.Unmarshal(data, &items)
+// 		if err != nil {
+// 			log.Printf("Failed to read items.json: %v", err)
+// 			return ItemWrapper{}, err
+// 		}
+// 	}
+// 	return items, nil
+// }
 
 func addItem(c echo.Context) error {
 	// Get form data
@@ -125,9 +126,9 @@ func getAllItems(c echo.Context) error {
 	}
 	defer rows.Close()
 
+	// Return response
 	var items ItemWrapper
 
-	// Return response
 	for rows.Next() {
 		var item Item
 
@@ -138,6 +139,13 @@ func getAllItems(c echo.Context) error {
 
 		items.Items = append(items.Items, item)
 	}
+
+	// if no search result
+	if len(items.Items) == 0 {
+		res := Response{Message: "no search result"}
+		return c.JSON(http.StatusNotFound, res)
+	}
+
 	return c.JSON(http.StatusOK, items)
 }
 
@@ -173,7 +181,7 @@ func getItem(c echo.Context) error {
 		}
 		return c.JSON(http.StatusOK, item)
 	} else {
-		res := Response{Message: "Not found"}
+		res := Response{Message: "no search result"}
 		return c.JSON(http.StatusNotFound, res)
 	}
 }
@@ -191,6 +199,46 @@ func getImg(c echo.Context) error {
 		imgPath = path.Join(ImgDir, "default.jpg")
 	}
 	return c.File(imgPath)
+}
+
+func searchItems(c echo.Context) error {
+	// Get query param
+	keyword := "%" + c.QueryParam("keyword") + "%"
+
+	// Connect to DB
+	db, err := sql.Open("sqlite3", "../db/mercari.sqlite3")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// Search DB
+	cmd := "SELECT * FROM items WHERE name LIKE $1"
+	rows, err := db.Query(cmd, keyword)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	// Return response
+	var matchedItems ItemWrapper
+	for rows.Next() {
+		var item Item
+		err = rows.Scan(&item.Id, &item.Name, &item.Category, &item.Img_filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		matchedItems.Items = append(matchedItems.Items, item)
+	}
+
+	// if no search result
+	if len(matchedItems.Items) == 0 {
+		res := Response{Message: "no search result"}
+		return c.JSON(http.StatusNotFound, res)
+	}
+
+	return c.JSON(http.StatusOK, matchedItems)
+
 }
 
 func main() {
@@ -216,6 +264,7 @@ func main() {
 	e.GET("/items", getAllItems)
 	e.GET("/items/:item_id", getItem)
 	e.GET("/image/:imageFilename", getImg)
+	e.GET("/search", searchItems)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
