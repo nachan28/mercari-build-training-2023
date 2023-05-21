@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -79,25 +78,6 @@ func readItemsFromFile() (ItemWrapper, error) {
 		}
 	}
 	return items, nil
-}
-
-func writeItemsToJSON(items ItemWrapper) error {
-	itemsJsonData, err := json.Marshal(items)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile("items.json", itemsJsonData, 0666)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			_, err := os.Create("items.json")
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	return nil
 }
 
 func addItem(c echo.Context) error {
