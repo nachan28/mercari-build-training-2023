@@ -14,7 +14,7 @@ import (
 	"strings"
 	"database/sql"
 
-	"github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -110,26 +110,42 @@ func addItem(c echo.Context) error {
 	img := trimPath(imagePath)
 	hashImageName := hashString(img)
 
-	// Read data from items.json
-	itemWrapper, err := readItemsFromFile()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
-	}
+	// // Read data from items.json
+	// itemWrapper, err := readItemsFromFile()
+	// if err != nil {
+	// 	return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read json file"})
+	// }
 
-	// Create item object
-	itemId := len(itemWrapper.Items) + 1
-	item := Item{itemId, name, category, hashImageName + ".jpg"}
-	c.Logger().Infof("Receive item: %s, category: %s", name, category)
+	// // Create item object
+	// itemId := len(itemWrapper.Items) + 1
+	// item := Item{itemId, name, category, hashImageName + ".jpg"}
+	// c.Logger().Infof("Receive item: %s, category: %s", name, category)
 
-	// Add item to itemWrapper
-	itemWrapper.Items = append(itemWrapper.Items, item)
+	// // Add item to itemWrapper
+	// itemWrapper.Items = append(itemWrapper.Items, item)
 
-	// Write data to items.json
-	err = writeItemsToJSON(itemWrapper)
+	// // Write data to items.json
+	// err = writeItemsToJSON(itemWrapper)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	
+	
+	// Connect to DB
+	db, err := sql.Open("sqlite3", "/db/mercari.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defer db.Close()
+	
+	
+	// Insert item to items table
+	cmd := "INSERT INTO items (name, category, image_filename) VALUES($1, $2, $3, $4)"
+	_, err = db.Exec(cmd, name, category, hashImageName + ".jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
 	// Return message
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
